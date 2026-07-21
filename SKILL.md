@@ -1,11 +1,13 @@
 ---
-name: J-code
-description: Compress a raw chat transcript (pasted text, or a .txt/.md transcript file) into a compact structured JSON handoff that can be pasted into a brand-new conversation with any LLM to restore context instantly. Works for any kind of conversation — coding, planning, psychology, research, personal advice, news discussion, or anything else — not just technical or coding chats. Only invoke this skill when the user explicitly types the literal command /json-here or /json-text as its own message. Never invoke this skill for any other reason: not for plain-language phrasing like "summarize this chat" or "give me a handoff," not proactively, not as a suggestion, not in response to greetings or small talk. If neither command has been typed, do not run this skill at all.
+name: json-it
+description: Compress a raw chat transcript (pasted text, or a .txt/.md transcript file) into a compact structured JSON handoff that can be pasted into a brand-new conversation with any LLM to restore context instantly. Works for any conversation whatsoever — greetings, small talk, casual chat, coding, planning, psychology, research, personal advice, news discussion, uploaded notes, or anything else. There is no minimum amount of content required — even a short or casual exchange gets compressed as-is. Only invoke this skill when the user explicitly types the literal command /json-here or /json-text as its own message. Never invoke this skill for any other reason: not for plain-language phrasing like "summarize this chat" or "give me a handoff," not proactively, not as a suggestion.
 ---
 
 ## Commands
 
-This skill only activates when the user's message is (or contains) the literal text `/json-here` or `/json-text`. It never activates on its own — not from greetings, small talk, casual conversation, or descriptions of wanting a summary/handoff without the literal command. If neither command appears, do nothing related to this skill.
+This skill only activates when the user's message is (or contains) the literal text `/json-here` or `/json-text`. It never activates on its own — not from greetings, small talk, casual conversation, or descriptions of wanting a summary/handoff without the literal command.
+
+Once one of the commands is typed, always produce the JSON — never refuse or defer because the conversation "isn't substantial enough" or "hasn't gotten into a real task yet." A conversation consisting only of greetings, small talk, or a brief exchange is still valid input: compress whatever exists, even if that means most fields end up short or the JSON itself is small. There is no minimum content threshold.
 
 - **`/json-here`** — Output the JSON directly in the chat, in a fenced code block. Nothing is saved to a file.
 - **`/json-text`** — Write the JSON to a `.json` file and deliver it to the user as a downloadable file (in addition to a short confirmation message — do not also paste the full JSON inline for this command, to avoid duplicating a large block).
@@ -84,7 +86,7 @@ Output **one JSON object** with this shape. Omit any field with no content — d
 3. Keep everything else minimal — no long preamble, no follow-up essay.
 
 ### For `/json-text`:
-1. Write the JSON to a file named `chat-context-<short-topic-slug>.json`, using whichever file-creation and file-delivery mechanism this LLM/platform provides.
+1. Write the JSON to a file named `json-it-<short-topic-slug>.json`, using whichever file-creation and file-delivery mechanism this LLM/platform provides.
 2. Deliver the file to the user so it can be downloaded or saved.
 3. In the accompanying message, include the same one-line paste instruction as above, so the user knows what to say when they upload the file into a new chat.
 
@@ -92,4 +94,4 @@ Output **one JSON object** with this shape. Omit any field with no content — d
 
 - **Multi-topic conversations.** If the transcript covers several unrelated threads, ask the user (one question) whether to compact everything or just the most recent/active thread — don't silently guess on a sprawling, multi-topic chat.
 - **Sensitive content.** If the transcript contains information the user likely wouldn't want persisted or pasted elsewhere (health, legal, financial specifics, credentials), leave it out of the JSON by default and note briefly that it was omitted.
-- **Too little to export.** If the conversation so far is only greetings or small talk with no real content of any kind yet — no topic, decisions, opinions, or exchange of substance, regardless of whether it's technical, personal, or anything else — say so plainly and note that running the command again once there's more to capture will work fine. Do not suggest that only certain topics (e.g. code or planning) count as exportable content — any substantive conversation, on any subject, qualifies.
+- **Minimal content.** If the conversation so far is short (e.g. just greetings or a couple of lines), still produce the JSON. `topic` can be as simple as "casual greeting, no topic established yet." Omit fields with nothing to put in them, as usual — a short conversation just means a short JSON, not a refusal.

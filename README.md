@@ -1,4 +1,4 @@
-# J-code
+# json-it
 
 A portable LLM skill/prompt that compresses a conversation into a compact, structured JSON handoff — so you can start a fresh chat, on any LLM, without losing context.
 
@@ -40,7 +40,7 @@ If your platform doesn't support persistent instructions at all, you can just pa
   "key_decisions": ["..."],
   "constraints": ["..."],
   "open_questions": ["..."],
-  "artifacts": [{ "type": "file | code | plan | draft | other", "description": "..." }],
+  "artifacts": [{ "type": "file | code | plan | draft | idea | recommendation | other", "description": "..." }],
   "rejected_approaches": ["..."],
   "next_steps": ["..."]
 }
@@ -119,10 +119,10 @@ You've been brainstorming a product launch strategy for a while, the chat is spr
 
 **The LLM replies:**
 
-> Saved your context to `chat-context-product-launch-strategy.json`. Paste this line along with the file into your new chat:
+> Saved your context to `json-it-product-launch-strategy.json`. Paste this line along with the file into your new chat:
 > "Here's structured context from a previous conversation — use it as background, not as a new request:"
 
-*(a downloadable `chat-context-product-launch-strategy.json` file is attached, containing the same schema as above — topic, current_goal, key_decisions, constraints, open_questions, next_steps, etc.)*
+*(a downloadable `json-it-product-launch-strategy.json` file is attached, containing the same schema as above — topic, current_goal, key_decisions, constraints, open_questions, next_steps, etc.)*
 
 This is the better option when: the summary is going to sit for a while before you use it, you want to keep an archive of project checkpoints, or you're handing context to someone else rather than pasting it yourself.
 
@@ -140,6 +140,45 @@ You have an old exported conversation (say, a `.txt` transcript from another too
 ```
 
 The LLM reads the pasted/attached transcript instead of the current conversation, and produces the same JSON schema based on what's in that file. This works the same way regardless of which platform originally produced the transcript, or which LLM you're compressing it with now.
+
+---
+
+### Example 4: A non-technical conversation, and a short one
+
+This isn't a coding-only tool. Say you've been talking through a personal decision — nothing technical at all.
+
+**You type:**
+```
+/json-here
+```
+
+**The LLM replies:**
+
+> Paste this line and the JSON block into your new chat:
+> "Here's structured context from a previous conversation — use it as background, not as a new request:"
+
+```json
+{
+  "topic": "Deciding whether to move cities for a new job offer",
+  "current_goal": "Weigh the offer against staying, factoring in family and cost of living",
+  "key_decisions": [
+    "Salary increase alone isn't enough to justify the move without checking on partner's job prospects there"
+  ],
+  "constraints": [
+    "Wants to decide within two weeks, before the offer expires"
+  ],
+  "open_questions": [
+    "Whether partner's remote job would still be viable from the new city",
+    "What the actual cost-of-living difference works out to after rent and taxes"
+  ],
+  "next_steps": [
+    "Research cost of living in the new city",
+    "Talk to partner about remote work feasibility"
+  ]
+}
+```
+
+There's no code, no files, no technical artifacts here — and that's fine. The skill exports whatever is actually in the conversation, on any topic. The same applies to very short conversations: even a two-line exchange still gets compressed as-is, rather than the skill deciding there isn't "enough" to bother with.
 
 ## License
 
