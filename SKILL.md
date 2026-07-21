@@ -1,6 +1,17 @@
 ---
 name: json-it
-description: Compress a raw chat transcript (pasted text, or a .txt/.md transcript file) into a compact structured JSON handoff that can be pasted into a brand-new conversation with any LLM to restore context instantly. Works for any conversation whatsoever — greetings, small talk, casual chat, coding, planning, psychology, research, personal advice, news discussion, uploaded notes, or anything else. There is no minimum amount of content required — even a short or casual exchange gets compressed as-is. Only invoke this skill when the user explicitly types the literal command /json-here or /json-text as its own message. Never invoke this skill for any other reason: not for plain-language phrasing like "summarize this chat" or "give me a handoff," not proactively, not as a suggestion.
+description: >
+  Compress a raw chat transcript (pasted text, or a .txt/.md transcript file)
+  into a compact structured JSON handoff that can be pasted into a
+  brand-new conversation with any LLM to restore context instantly. Works
+  for any conversation whatsoever — greetings, small talk, casual chat,
+  coding, planning, psychology, research, personal advice, news discussion,
+  uploaded notes, or anything else. There is no minimum amount of content
+  required — even a short or casual exchange gets compressed as-is. Only
+  invoke this skill when the user explicitly types the literal command
+  /json-here or /json-text as its own message. Never invoke this skill for
+  any other reason: not for plain-language phrasing like "summarize this
+  chat" or "give me a handoff," not proactively, not as a suggestion.
 ---
 
 ## Commands
