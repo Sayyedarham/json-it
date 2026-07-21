@@ -9,16 +9,18 @@ description: >
   uploaded notes, or anything else, including conversations where nothing
   of substance happened (no code, no decisions, no discussion of an
   uploaded file). There is no minimum amount of content required — even a
-  short, casual, or empty-seeming exchange gets compressed as-is. Only
-  invoke this skill when the user explicitly types the literal command
-  /json-here or /json-text as its own message. Never invoke this skill for
-  any other reason: not for plain-language phrasing like "summarize this
-  chat" or "give me a handoff," not proactively, not as a suggestion.
+  short, casual, or empty-seeming exchange gets compressed as-is. Invoke
+  this skill when the user types /json-here, /json-text, a close variant
+  (e.g. /json-it, /json), or plain language clearly asking for a
+  chat-to-JSON handoff — in all of those cases just run it as /json-here
+  by default, without asking for confirmation. Never invoke this skill on
+  ordinary greetings, small talk, or casual conversation with no
+  summarization intent expressed at all.
 ---
 
 ## Commands
 
-This skill only activates when the user's message is (or contains) the literal text `/json-here` or `/json-text`. It never activates on its own — not from greetings, small talk, casual conversation, or descriptions of wanting a summary/handoff without the literal command.
+This skill activates on the literal commands `/json-here` or `/json-text`, and also on close variants that clearly mean the same thing (e.g. `/json-it`, `/json`, `/json-chat`). For any such variant, or for plain-language requests with no command at all, do not ask which command was meant and do not ask for confirmation — just run it as `/json-here` (inline output) immediately. It never activates on its own from greetings, small talk, or casual conversation with no summarization intent expressed at all.
 
 Once one of the commands is typed, always produce the JSON — never refuse or defer because the conversation "isn't substantial enough," "hasn't gotten into a real task yet," or "has nothing worth saving." This applies even when:
 - The conversation is only greetings or small talk
@@ -31,7 +33,7 @@ There is no minimum content threshold and no "substance" bar to clear. Every con
 - **`/json-here`** — Output the JSON directly in the chat, in a fenced code block. Nothing is saved to a file.
 - **`/json-text`** — Write the JSON to a `.json` file and deliver it to the user as a downloadable file (in addition to a short confirmation message — do not also paste the full JSON inline for this command, to avoid duplicating a large block).
 
-If the user's intent is ambiguous (e.g. they describe wanting a handoff but don't type either command), ask them which of the two commands they'd like to run rather than guessing.
+If the user describes wanting a handoff/summary in plain language but doesn't type either literal command (e.g. "can you summarize this chat for a new conversation," "give me a handoff"), do not ask which command they meant and do not refuse. Default to `/json-here` behavior — output inline — since it requires no extra decision from the user and file delivery is strictly more steps. Only ask a clarifying question if the user's message is genuinely about something else entirely and a handoff isn't clearly what they want.
 
 ## Input
 
@@ -111,9 +113,110 @@ Output **one JSON object** with this shape. Omit any field with no content — d
 2. Deliver the file to the user so it can be downloaded or saved.
 3. In the accompanying message, include the same one-line paste instruction as above, so the user knows what to say when they upload the file into a new chat.
 
+## Example full responses
+
+These show the complete reply format, not just the JSON payload — useful for seeing how triggers (exact command, variant, or plain language) all resolve to the same no-confirmation `/json-here` behavior.
+
+**Trigger: exact `/json-here`**
+User: `/json-here`
+Response:
+> Paste this line and the JSON block into your new chat:
+> "Here's structured context from a previous conversation — use it as background, not as a new request:"
+>
+> ```json
+> { "topic": "..." }
+> ```
+
+**Trigger: variant `/json-it`**
+User: `/json-it`
+Response: (identical shape to above — no "did you mean /json-here?" question, just runs inline immediately)
+> Paste this line and the JSON block into your new chat:
+> "Here's structured context from a previous conversation — use it as background, not as a new request:"
+>
+> ```json
+> { "topic": "..." }
+> ```
+
+**Trigger: plain language, no command**
+User: "can you give me something to paste into a new chat so it has context on this?"
+Response: same inline format as above, run immediately — no clarifying question about which command or format.
+
+**Trigger: exact `/json-text`**
+User: `/json-text`
+Response:
+> Saved — here's your context handoff file.
+>
+> Paste this line into your new chat along with the uploaded file:
+> "Here's structured context from a previous conversation — use it as background, not as a new request:"
+
+(followed by the actual file delivery mechanism, not pasted JSON)
+
+**Non-trigger: ordinary conversation**
+User: "thanks, that's really helpful"
+Response: normal conversational reply — skill does not activate, no JSON is produced, since there's no command, variant, or clear handoff intent.
+
+## Examples
+
+**Example 1 — coding task, mid-stream**
+Conversation: user asked for a Python script to dedupe CSV rows, Claude wrote it, user said "also strip whitespace from headers," Claude updated it, user hasn't confirmed it works yet.
+```json
+{
+  "topic": "Python script to deduplicate rows in a CSV file",
+  "current_goal": "Finalize a working dedupe script with header whitespace stripped",
+  "key_decisions": ["Script uses pandas.drop_duplicates on all columns"],
+  "artifacts": [
+    {"type": "code", "description": "dedupe.py — reads CSV, strips header whitespace, drops duplicate rows, writes output. Not yet confirmed working by user."}
+  ],
+  "next_steps": ["User to test dedupe.py and report back"]
+}
+```
+
+**Example 2 — greeting only, nothing else**
+Conversation: user said "hey" and Claude replied with a greeting. Nothing further.
+```json
+{
+  "topic": "Casual greeting, no topic established yet"
+}
+```
+
+**Example 3 — file uploaded, never discussed**
+Conversation: user uploaded `q3_budget.xlsx`, then immediately asked an unrelated question about flight prices, and the file was never opened or referenced again.
+```json
+{
+  "topic": "User uploaded q3_budget.xlsx but conversation moved to an unrelated flight-price question; file was never discussed"
+}
+```
+
+**Example 4 — planning conversation with a rejected approach**
+Conversation: user wants to plan a 3-day Tokyo trip, considered staying in Shinjuku but decided against it for being too loud, settled on Yanaka, still deciding between two ryokans.
+```json
+{
+  "topic": "Planning a 3-day trip to Tokyo",
+  "current_goal": "Choose lodging in Yanaka and finalize a 3-day itinerary",
+  "key_decisions": ["Staying in the Yanaka neighborhood"],
+  "open_questions": ["Which of two shortlisted ryokans in Yanaka to book"],
+  "rejected_approaches": ["Staying in Shinjuku — ruled out for being too loud"],
+  "next_steps": ["Compare the two ryokans and pick one", "Draft day-by-day itinerary"]
+}
+```
+
+**Example 5 — personal advice, no artifacts**
+Conversation: user vented about a conflict with a coworker and asked how to raise it in their next 1:1; Claude suggested a framing and the user said they'd try it.
+```json
+{
+  "topic": "Advice on raising a conflict with a coworker in an upcoming 1:1",
+  "current_goal": "Have the 1:1 conversation using the suggested framing",
+  "key_decisions": ["User plans to open with specific examples rather than general frustration"],
+  "next_steps": ["User to have the 1:1 and report how it went"]
+}
+```
+
+**Example 6 — plain-language request, defaults to inline**
+User says: "hey can you give me something I can paste into a new chat to catch it up on this?" — no literal command typed.
+Response: treat as `/json-here`, output inline immediately, no clarifying question about format.
+
 ## Edge cases
 
 - **Multi-topic conversations.** If the transcript covers several unrelated threads, ask the user (one question) whether to compact everything or just the most recent/active thread — don't silently guess on a sprawling, multi-topic chat.
 - **Sensitive content.** If the transcript contains information the user likely wouldn't want persisted or pasted elsewhere (health, legal, financial specifics, credentials), leave it out of the JSON by default and note briefly that it was omitted.
-- **Minimal content.** If the conversation so far is short (e.g. just greetings or a couple of lines), still produce the JSON. `topic` can be as simple as "casual greeting, no topic established yet." Omit fields with nothing to put in them, as usual — a short conversation just means a short JSON, not a refusal.
-- **Useless or undiscussed uploads.** If a file was uploaded but never discussed, or turned out irrelevant to what the user needed, still produce the JSON. Note the file's name/type in `topic` (e.g. "user uploaded budget.csv, no discussion followed") and leave every other field omitted. Do not treat an unused upload as "nothing to summarize" — the fact that it was uploaded and not used is itself the correct summary.
+- **Minimal content or undiscussed uploads.** See Examples 2 and 3 above — short/empty conversations and unused file uploads both still get a JSON, with `topic` as the only populated field.
