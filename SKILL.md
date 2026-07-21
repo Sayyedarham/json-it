@@ -1,18 +1,16 @@
 ---
-name: chat-context-export
-description: Compress a raw chat transcript (pasted text, or a .txt/.md transcript file) into a compact structured JSON handoff that can be pasted into a brand-new conversation to restore context instantly. Trigger this skill whenever the user types the commands /json-here or /json-text, or asks in plain language to "summarize this chat for a new conversation," "export context," "give me a handoff," "compact this conversation," or says a chat is getting long and they want to continue it elsewhere. This is not a narrative or literary-style summary for a human to read — the output is a dense, machine-parseable JSON object meant to be re-read by another LLM instance at the start of a new session.
+name: J-code
+description: Compress a raw chat transcript (pasted text, or a .txt/.md transcript file) into a compact structured JSON handoff that can be pasted into a brand-new conversation with any LLM to restore context instantly. Only invoke this skill when the user explicitly types the command /json-here or /json-text. Do not trigger automatically based on plain-language phrasing alone (e.g. "summarize this chat," "give me a handoff") — wait for one of the two explicit commands, or a direct, unambiguous request to run this specific skill by name.
 ---
-
-# Chat Context Export
-
-Turn a raw conversation transcript into the smallest, most information-dense JSON object that still lets a *new* chat session pick up the work with full context.
 
 ## Commands
 
-This skill is invoked with one of two explicit commands. If the user just asks in plain language ("summarize this for a new chat," "give me a handoff," etc.) without typing a command, default to `/json-here` behavior unless they mention wanting a file/download, in which case use `/json-text` behavior.
+This skill only activates on an explicit command. Do not infer intent from plain language and run this automatically. Wait for the user to type one of the two commands below.
 
 - **`/json-here`** — Output the JSON directly in the chat, in a fenced code block. Nothing is saved to a file.
 - **`/json-text`** — Write the JSON to a `.json` file and deliver it to the user as a downloadable file (in addition to a short confirmation message — do not also paste the full JSON inline for this command, to avoid duplicating a large block).
+
+If the user's intent is ambiguous (e.g. they describe wanting a handoff but don't type either command), ask them which of the two commands they'd like to run rather than guessing.
 
 ## Input
 
@@ -21,7 +19,7 @@ The transcript to compress may arrive as:
 - A pasted block of raw text in the user's message
 - An uploaded `.txt` or `.md` file
 
-If a file is mentioned but not actually present in context, check `/mnt/user-data/uploads/` before asking the user to re-upload it.
+If a file is mentioned but doesn't actually appear to be attached or pasted anywhere in context, ask the user to paste or attach it rather than guessing at its contents.
 
 ## Step 1: Read and understand the transcript
 
@@ -86,8 +84,8 @@ Output **one JSON object** with this shape. Omit any field with no content — d
 3. Keep everything else minimal — no long preamble, no follow-up essay.
 
 ### For `/json-text`:
-1. Write the JSON to a file (suggested name: `chat-context-<short-topic-slug>.json`) in the outputs directory.
-2. Deliver the file to the user.
+1. Write the JSON to a file named `chat-context-<short-topic-slug>.json`, using whichever file-creation and file-delivery mechanism this LLM/platform provides.
+2. Deliver the file to the user so it can be downloaded or saved.
 3. In the accompanying message, include the same one-line paste instruction as above, so the user knows what to say when they upload the file into a new chat.
 
 ## Edge cases
