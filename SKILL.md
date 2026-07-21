@@ -6,8 +6,10 @@ description: >
   brand-new conversation with any LLM to restore context instantly. Works
   for any conversation whatsoever — greetings, small talk, casual chat,
   coding, planning, psychology, research, personal advice, news discussion,
-  uploaded notes, or anything else. There is no minimum amount of content
-  required — even a short or casual exchange gets compressed as-is. Only
+  uploaded notes, or anything else, including conversations where nothing
+  of substance happened (no code, no decisions, no discussion of an
+  uploaded file). There is no minimum amount of content required — even a
+  short, casual, or empty-seeming exchange gets compressed as-is. Only
   invoke this skill when the user explicitly types the literal command
   /json-here or /json-text as its own message. Never invoke this skill for
   any other reason: not for plain-language phrasing like "summarize this
@@ -18,7 +20,13 @@ description: >
 
 This skill only activates when the user's message is (or contains) the literal text `/json-here` or `/json-text`. It never activates on its own — not from greetings, small talk, casual conversation, or descriptions of wanting a summary/handoff without the literal command.
 
-Once one of the commands is typed, always produce the JSON — never refuse or defer because the conversation "isn't substantial enough" or "hasn't gotten into a real task yet." A conversation consisting only of greetings, small talk, or a brief exchange is still valid input: compress whatever exists, even if that means most fields end up short or the JSON itself is small. There is no minimum content threshold.
+Once one of the commands is typed, always produce the JSON — never refuse or defer because the conversation "isn't substantial enough," "hasn't gotten into a real task yet," or "has nothing worth saving." This applies even when:
+- The conversation is only greetings or small talk
+- Nothing was decided, built, coded, or resolved
+- The only content is a file the user uploaded with no discussion of it, or a file that turned out to be irrelevant/useless
+- The exchange consists of a single question and answer with no follow-up
+
+There is no minimum content threshold and no "substance" bar to clear. Every conversation is compressible, including ones where the honest summary is "nothing of consequence happened yet." In that case, `topic` and `current_goal` simply describe that plainly (e.g. "user uploaded a file, no discussion has occurred yet" or "casual greeting, no topic established"), and every other field is omitted. A near-empty JSON is a correct, complete output for this skill — not a sign that something went wrong or that the skill doesn't apply.
 
 - **`/json-here`** — Output the JSON directly in the chat, in a fenced code block. Nothing is saved to a file.
 - **`/json-text`** — Write the JSON to a `.json` file and deliver it to the user as a downloadable file (in addition to a short confirmation message — do not also paste the full JSON inline for this command, to avoid duplicating a large block).
@@ -45,9 +53,11 @@ Read the full transcript (or full conversation so far) before writing anything. 
 - What's still open or unresolved
 - What should happen next
 
+If none of the above apply — nothing was decided, nothing was built, no constraints were stated — that's a valid outcome, not a blocker. Move to Step 2 anyway and produce a minimal JSON.
+
 ## Step 2: Produce the JSON
 
-Output **one JSON object** with this shape. Omit any field with no content — do not include empty arrays or null values.
+Output **one JSON object** with this shape. Omit any field with no content — do not include empty arrays or null values. `topic` is the only field that's always required; every other field is optional and should be omitted when there's genuinely nothing to put in it.
 
 ```json
 {
@@ -106,3 +116,4 @@ Output **one JSON object** with this shape. Omit any field with no content — d
 - **Multi-topic conversations.** If the transcript covers several unrelated threads, ask the user (one question) whether to compact everything or just the most recent/active thread — don't silently guess on a sprawling, multi-topic chat.
 - **Sensitive content.** If the transcript contains information the user likely wouldn't want persisted or pasted elsewhere (health, legal, financial specifics, credentials), leave it out of the JSON by default and note briefly that it was omitted.
 - **Minimal content.** If the conversation so far is short (e.g. just greetings or a couple of lines), still produce the JSON. `topic` can be as simple as "casual greeting, no topic established yet." Omit fields with nothing to put in them, as usual — a short conversation just means a short JSON, not a refusal.
+- **Useless or undiscussed uploads.** If a file was uploaded but never discussed, or turned out irrelevant to what the user needed, still produce the JSON. Note the file's name/type in `topic` (e.g. "user uploaded budget.csv, no discussion followed") and leave every other field omitted. Do not treat an unused upload as "nothing to summarize" — the fact that it was uploaded and not used is itself the correct summary.
