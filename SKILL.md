@@ -1,11 +1,11 @@
 ---
 name: J-code
-description: Compress a raw chat transcript (pasted text, or a .txt/.md transcript file) into a compact structured JSON handoff that can be pasted into a brand-new conversation with any LLM to restore context instantly. Only invoke this skill when the user explicitly types the command /json-here or /json-text. Do not trigger automatically based on plain-language phrasing alone (e.g. "summarize this chat," "give me a handoff") — wait for one of the two explicit commands, or a direct, unambiguous request to run this specific skill by name.
+description: Compress a raw chat transcript (pasted text, or a .txt/.md transcript file) into a compact structured JSON handoff that can be pasted into a brand-new conversation with any LLM to restore context instantly. Works for any kind of conversation — coding, planning, psychology, research, personal advice, news discussion, or anything else — not just technical or coding chats. Only invoke this skill when the user explicitly types the literal command /json-here or /json-text as its own message. Never invoke this skill for any other reason: not for plain-language phrasing like "summarize this chat" or "give me a handoff," not proactively, not as a suggestion, not in response to greetings or small talk. If neither command has been typed, do not run this skill at all.
 ---
 
 ## Commands
 
-This skill only activates on an explicit command. Do not infer intent from plain language and run this automatically. Wait for the user to type one of the two commands below.
+This skill only activates when the user's message is (or contains) the literal text `/json-here` or `/json-text`. It never activates on its own — not from greetings, small talk, casual conversation, or descriptions of wanting a summary/handoff without the literal command. If neither command appears, do nothing related to this skill.
 
 - **`/json-here`** — Output the JSON directly in the chat, in a fenced code block. Nothing is saved to a file.
 - **`/json-text`** — Write the JSON to a `.json` file and deliver it to the user as a downloadable file (in addition to a short confirmation message — do not also paste the full JSON inline for this command, to avoid duplicating a large block).
@@ -51,8 +51,8 @@ Output **one JSON object** with this shape. Omit any field with no content — d
   ],
   "artifacts": [
     {
-      "type": "file | code | plan | draft | other",
-      "description": "What it is and its current state, e.g. 'SKILL.md draft, complete, not yet tested'"
+      "type": "file | code | plan | draft | idea | recommendation | other",
+      "description": "What it is and its current state, e.g. 'draft outline, complete, not yet reviewed'"
     }
   ],
   "rejected_approaches": [
@@ -68,8 +68,8 @@ Output **one JSON object** with this shape. Omit any field with no content — d
 
 - **Compression over completeness.** Each array item should be one line, ideally under ~20 words. If something needs a paragraph, split it into two shorter items instead.
 - **Facts, not transcript.** Write "User prefers X over Y because Z," not "User said they were thinking maybe X could be better than Y." Strip conversational scaffolding.
-- **Preserve exact identifiers.** File names, variable names, URLs, commands, and version numbers must be copied verbatim, never paraphrased.
-- **Don't summarize short code.** If a code artifact is small (under ~30 lines), include it verbatim in the artifact's `description` (or add a `content` field). If it's long, describe its location/state instead and note the user should re-share it if needed in the new chat.
+- **Preserve exact identifiers.** Names, dates, file names, URLs, commands, quotes, or other specific details that must match exactly should be copied verbatim, never paraphrased.
+- **Don't summarize short artifacts.** If a produced artifact is short (code, a paragraph of writing, a short list, etc. — under ~30 lines), include it verbatim in the artifact's `description` (or add a `content` field). If it's long, describe its location/state instead and note the user should re-share it if needed in the new chat.
 - **No filler.** Empty sections are omitted entirely, not included as `[]`.
 
 ## Step 3: Deliver
@@ -92,4 +92,4 @@ Output **one JSON object** with this shape. Omit any field with no content — d
 
 - **Multi-topic conversations.** If the transcript covers several unrelated threads, ask the user (one question) whether to compact everything or just the most recent/active thread — don't silently guess on a sprawling, multi-topic chat.
 - **Sensitive content.** If the transcript contains information the user likely wouldn't want persisted or pasted elsewhere (health, legal, financial specifics, credentials), leave it out of the JSON by default and note briefly that it was omitted.
-- **Too little to export.** If there's only a couple of exchanges with no real state (no decisions, artifacts, or constraints yet), say so plainly rather than producing a near-empty JSON.
+- **Too little to export.** If the conversation so far is only greetings or small talk with no real content of any kind yet — no topic, decisions, opinions, or exchange of substance, regardless of whether it's technical, personal, or anything else — say so plainly and note that running the command again once there's more to capture will work fine. Do not suggest that only certain topics (e.g. code or planning) count as exportable content — any substantive conversation, on any subject, qualifies.
