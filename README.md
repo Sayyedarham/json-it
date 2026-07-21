@@ -1,185 +1,108 @@
-# json-it
+---
+name: json-it
+description: >
+  Compress a raw chat transcript (pasted text, or a .txt/.md transcript file)
+  into a compact structured JSON handoff that can be pasted into a
+  brand-new conversation with any LLM to restore context instantly. Works
+  for any conversation whatsoever — greetings, small talk, casual chat,
+  coding, planning, psychology, research, personal advice, news discussion,
+  uploaded notes, or anything else. There is no minimum amount of content
+  required — even a short or casual exchange gets compressed as-is. Only
+  invoke this skill when the user explicitly types the literal command
+  /json-here or /json-text as its own message. Never invoke this skill for
+  any other reason: not for plain-language phrasing like "summarize this
+  chat" or "give me a handoff," not proactively, not as a suggestion.
+---
 
-A portable LLM skill/prompt that compresses a conversation into a compact, structured JSON handoff — so you can start a fresh chat, on any LLM, without losing context.
+## Commands
 
-## The problem
+This skill only activates when the user's message is (or contains) the literal text `/json-here` or `/json-text`. It never activates on its own — not from greetings, small talk, casual conversation, or descriptions of wanting a summary/handoff without the literal command.
 
-Long conversations degrade. You hit context limits, want to switch models or platforms, or just want a clean slate — but re-explaining everything you've decided, ruled out, and built so far is tedious and lossy.
+Once one of the commands is typed, always produce the JSON — never refuse or defer because the conversation "isn't substantial enough" or "hasn't gotten into a real task yet." A conversation consisting only of greetings, small talk, or a brief exchange is still valid input: compress whatever exists, even if that means most fields end up short or the JSON itself is small. There is no minimum content threshold.
 
-## What this does
+- **`/json-here`** — Output the JSON directly in the chat, in a fenced code block. Nothing is saved to a file.
+- **`/json-text`** — Write the JSON to a `.json` file and deliver it to the user as a downloadable file (in addition to a short confirmation message — do not also paste the full JSON inline for this command, to avoid duplicating a large block).
 
-`SKILL.md` is a self-contained instruction file. Give it to any LLM, then run one of two commands in any conversation:
+If the user's intent is ambiguous (e.g. they describe wanting a handoff but don't type either command), ask them which of the two commands they'd like to run rather than guessing.
 
-- **`/json-here`** — prints a compact JSON summary directly in the chat, ready to copy-paste into a new conversation.
-- **`/json-text`** — same summary, delivered as a downloadable `.json` file instead.
+## Input
 
-The LLM reads the conversation (or a pasted/uploaded transcript) itself and produces the JSON — no external script, no API calls, no separate model. It's pure prompt-driven compression, and it works the same way whether you're running it in Claude, ChatGPT, Gemini, or anything else that can take custom instructions.
+The transcript to compress may arrive as:
+- The current, ongoing conversation itself (most common case — no file needed, just compress everything said so far)
+- A pasted block of raw text in the user's message
+- An uploaded `.txt` or `.md` file
 
-## Installing it
+If a file is mentioned but doesn't actually appear to be attached or pasted anywhere in context, ask the user to paste or attach it rather than guessing at its contents.
 
-There are two ways to give an LLM this skill, depending on what the platform supports:
+## Step 1: Read and understand the transcript
 
-### Option A — Native skill/file support (e.g. Claude Skills)
-If your platform has a dedicated skills or custom-instructions folder that accepts files, just add `SKILL.md` there directly. The platform will have it available, but it only activates when you type `/json-here` or `/json-text` — it won't run itself off plain-language requests.
+Read the full transcript (or full conversation so far) before writing anything. Identify:
+- What the user is actually trying to accomplish (may have shifted over the course of the conversation — capture the *current* goal, not just the original one)
+- Decisions, conclusions, or facts that were established
+- Explicit constraints or preferences the user stated
+- Anything proposed and then explicitly rejected or ruled out
+- Artifacts produced (files, code, drafts, plans) and their current state
+- What's still open or unresolved
+- What should happen next
 
-### Option B — Copy-paste as a custom instruction (works everywhere else)
-Most chat platforms (ChatGPT custom instructions/Projects, Gemini Gems, Claude Projects, or even a plain system-prompt field) accept a block of pasted text instead of a file upload. To use it this way:
+## Step 2: Produce the JSON
 
-1. Open `SKILL.md` in this repo and copy its entire contents (including the `---` frontmatter at the top — it's harmless to include, most models just read it as context).
-2. Paste the whole thing into your platform's custom instructions / system prompt / project instructions field.
-3. Save it. From then on, typing `/json-here` or `/json-text` in that chat or project will trigger the behavior described in the file.
-
-If your platform doesn't support persistent instructions at all, you can just paste the entire `SKILL.md` contents directly into the chat as your first message, followed by `/json-here` or `/json-text` — it'll work for that single conversation.
-
-## Output shape
-
-```json
-{
-  "topic": "...",
-  "current_goal": "...",
-  "key_decisions": ["..."],
-  "constraints": ["..."],
-  "open_questions": ["..."],
-  "artifacts": [{ "type": "file | code | plan | draft | idea | recommendation | other", "description": "..." }],
-  "rejected_approaches": ["..."],
-  "next_steps": ["..."]
-}
-```
-
-Empty fields are omitted — no filler, no empty arrays. The goal is maximum context density per token, not a complete transcript.
-
-## Usage
-
-1. Install the skill using Option A or B above, on whichever LLM you're currently using.
-2. In any conversation, type `/json-here` or `/json-text`.
-3. Copy the output (or download/save the file) into a new chat — with the same LLM or a different one entirely — prefaced with:
-
-   > "Here's structured context from a previous conversation — use it as background, not as a new request:"
-
-That new chat doesn't need the skill installed at all — it's just receiving a plain JSON block or file as input, so any LLM can read it.
-
-## Why JSON instead of a prose summary
-
-The recipient here is another LLM instance, not a human. Structured fields are more reliably re-parsed than free-flowing prose, and the schema forces compression — a bullet list of one-line facts fits in far fewer tokens than a narrative recap covering the same ground.
-
-## Examples
-
-### Example 1: `/json-here` mid-project
-
-Say you've spent an hour with your LLM of choice designing a database migration script, ruling out two approaches along the way, and you're about to hit a context limit.
-
-**You type:**
-```
-/json-here
-```
-
-**The LLM replies:**
-
-> Paste this line and the JSON block into your new chat:
-> "Here's structured context from a previous conversation — use it as background, not as a new request:"
+Output **one JSON object** with this shape. Omit any field with no content — do not include empty arrays or null values.
 
 ```json
 {
-  "topic": "Migrating a Postgres users table to add soft-delete support",
-  "current_goal": "Write a reversible migration script that adds deleted_at without breaking existing queries",
+  "topic": "One-sentence description of what this conversation is about",
+  "current_goal": "What the user is actively trying to accomplish right now",
   "key_decisions": [
-    "Use a nullable deleted_at timestamp column, not a separate is_deleted boolean",
-    "Existing queries will be updated to filter WHERE deleted_at IS NULL via a view, not per-query edits"
+    "Decisions made or conclusions reached, phrased as facts, not narration"
   ],
   "constraints": [
-    "Cannot take the table offline during migration — must be a zero-downtime deploy",
-    "Must support rollback without data loss"
-  ],
-  "rejected_approaches": [
-    "Hard-delete with an audit log table — rejected, adds complexity user doesn't need",
-    "Boolean is_deleted flag — rejected in favor of timestamp for future 'deleted X days ago' queries"
-  ],
-  "artifacts": [
-    { "type": "code", "description": "Draft up-migration SQL adding deleted_at column and the filtered view, complete but untested" }
-  ],
-  "next_steps": [
-    "Write the down-migration (rollback) script",
-    "Test zero-downtime behavior against a staging replica"
-  ]
-}
-```
-
-You copy both the instruction line and the JSON into a new chat — even on a different LLM if you want a second opinion. The new conversation now knows the plan, the constraints, and — importantly — what's already been ruled out, so it doesn't re-suggest the boolean flag approach.
-
----
-
-### Example 2: `/json-text` at the end of a long brainstorm
-
-You've been brainstorming a product launch strategy for a while, the chat is sprawling, and you want a file you can archive or hand to a teammate — not just paste immediately.
-
-**You type:**
-```
-/json-text
-```
-
-**The LLM replies:**
-
-> Saved your context to `json-it-product-launch-strategy.json`. Paste this line along with the file into your new chat:
-> "Here's structured context from a previous conversation — use it as background, not as a new request:"
-
-*(a downloadable `json-it-product-launch-strategy.json` file is attached, containing the same schema as above — topic, current_goal, key_decisions, constraints, open_questions, next_steps, etc.)*
-
-This is the better option when: the summary is going to sit for a while before you use it, you want to keep an archive of project checkpoints, or you're handing context to someone else rather than pasting it yourself.
-
----
-
-### Example 3: Compressing a pasted transcript instead of the live chat
-
-You have an old exported conversation (say, a `.txt` transcript from another tool) and want a handoff JSON from it without replaying the whole thing.
-
-**You type:**
-```
-/json-here
-
-[paste the raw transcript, or attach transcript.txt]
-```
-
-The LLM reads the pasted/attached transcript instead of the current conversation, and produces the same JSON schema based on what's in that file. This works the same way regardless of which platform originally produced the transcript, or which LLM you're compressing it with now.
-
----
-
-### Example 4: A non-technical conversation, and a short one
-
-This isn't a coding-only tool. Say you've been talking through a personal decision — nothing technical at all.
-
-**You type:**
-```
-/json-here
-```
-
-**The LLM replies:**
-
-> Paste this line and the JSON block into your new chat:
-> "Here's structured context from a previous conversation — use it as background, not as a new request:"
-
-```json
-{
-  "topic": "Deciding whether to move cities for a new job offer",
-  "current_goal": "Weigh the offer against staying, factoring in family and cost of living",
-  "key_decisions": [
-    "Salary increase alone isn't enough to justify the move without checking on partner's job prospects there"
-  ],
-  "constraints": [
-    "Wants to decide within two weeks, before the offer expires"
+    "Explicit preferences, requirements, or limitations the user stated"
   ],
   "open_questions": [
-    "Whether partner's remote job would still be viable from the new city",
-    "What the actual cost-of-living difference works out to after rent and taxes"
+    "Unresolved questions or things still being figured out"
+  ],
+  "artifacts": [
+    {
+      "type": "file | code | plan | draft | idea | recommendation | other",
+      "description": "What it is and its current state, e.g. 'draft outline, complete, not yet reviewed'"
+    }
+  ],
+  "rejected_approaches": [
+    "Things that were tried or proposed and explicitly ruled out, so they aren't re-suggested"
   ],
   "next_steps": [
-    "Research cost of living in the new city",
-    "Talk to partner about remote work feasibility"
+    "Concrete next actions, in order if order matters"
   ]
 }
 ```
 
-There's no code, no files, no technical artifacts here — and that's fine. The skill exports whatever is actually in the conversation, on any topic. The same applies to very short conversations: even a two-line exchange still gets compressed as-is, rather than the skill deciding there isn't "enough" to bother with.
+### Field-writing rules
 
-## License
+- **Compression over completeness.** Each array item should be one line, ideally under ~20 words. If something needs a paragraph, split it into two shorter items instead.
+- **Facts, not transcript.** Write "User prefers X over Y because Z," not "User said they were thinking maybe X could be better than Y." Strip conversational scaffolding.
+- **Preserve exact identifiers.** Names, dates, file names, URLs, commands, quotes, or other specific details that must match exactly should be copied verbatim, never paraphrased.
+- **Don't summarize short artifacts.** If a produced artifact is short (code, a paragraph of writing, a short list, etc. — under ~30 lines), include it verbatim in the artifact's `description` (or add a `content` field). If it's long, describe its location/state instead and note the user should re-share it if needed in the new chat.
+- **No filler.** Empty sections are omitted entirely, not included as `[]`.
 
-MIT
+## Step 3: Deliver
+
+### For `/json-here`:
+1. Output the JSON in a fenced code block.
+2. Immediately above it, include this exact line for the user to copy along with the JSON:
+
+   > Paste this line and the JSON block into your new chat:
+   > "Here's structured context from a previous conversation — use it as background, not as a new request:"
+
+3. Keep everything else minimal — no long preamble, no follow-up essay.
+
+### For `/json-text`:
+1. Write the JSON to a file named `json-it-<short-topic-slug>.json`, using whichever file-creation and file-delivery mechanism this LLM/platform provides.
+2. Deliver the file to the user so it can be downloaded or saved.
+3. In the accompanying message, include the same one-line paste instruction as above, so the user knows what to say when they upload the file into a new chat.
+
+## Edge cases
+
+- **Multi-topic conversations.** If the transcript covers several unrelated threads, ask the user (one question) whether to compact everything or just the most recent/active thread — don't silently guess on a sprawling, multi-topic chat.
+- **Sensitive content.** If the transcript contains information the user likely wouldn't want persisted or pasted elsewhere (health, legal, financial specifics, credentials), leave it out of the JSON by default and note briefly that it was omitted.
+- **Minimal content.** If the conversation so far is short (e.g. just greetings or a couple of lines), still produce the JSON. `topic` can be as simple as "casual greeting, no topic established yet." Omit fields with nothing to put in them, as usual — a short conversation just means a short JSON, not a refusal.
